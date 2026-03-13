@@ -16,7 +16,6 @@ class Village:
         self.consumo_acqua = consumo_acqua
         self.riserva_acqua = riserva_acqua
 
-        self.fonte_avvelenata = False
         self.morti_totali = 0
 
 
@@ -45,7 +44,7 @@ class Village:
         self.riserva_acqua = max(0, min(100, self.riserva_acqua + quantita))
 
     def avvelena_fonte(self):
-        self.fonte_avvelenata = True
+        WaterSource.INSTANCE.poisoned = True
 
     # region Aggiornamenti Annuali
 
@@ -62,7 +61,7 @@ class Village:
             self.morti_totali += morti
 
     def consuma_acqua(self):
-        if not self.fonte_avvelenata:
+        if not WaterSource.INSTANCE.poisoned:
             self.modifica_riserva_acqua(-self.consumo_acqua)
 
     def aggiorna_anno(self, quantita_acqua):
@@ -79,7 +78,6 @@ class Village:
             "num_persone": self.num_persone,
             "morale": self.morale,
             "riserva_acqua": self.riserva_acqua,
-            "fonte_avvelenata": self.fonte_avvelenata,
             "in_crisi_idrica": self.in_crisi_idrica,
             "in_crisi_morale": self.in_crisi_morale,
             "morti_totali": self.morti_totali,

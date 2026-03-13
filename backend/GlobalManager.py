@@ -9,8 +9,8 @@ class GlobalManager:
     def __init__(self, year):
         GlobalManager.INSTANCE = self
 
-        self.choice: ChoiceEnum = None
-        self.time = TimeLapse(year)
+        self.choice = None
+        self.time   = TimeLapse(year)
     # #enddef
 
     def set_choice(self, choice):

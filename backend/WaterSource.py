@@ -8,21 +8,24 @@ class WaterSource:
         WaterSource.INSTANCE = self
 
         self.year_water = 4
+        self.poisoned = False
 
     #manager acqua villaggio A
     def get_water_villageA(self, choice):
-        if choice == ChoiceEnum.SHARED:
-            return self.year_water/2
-        elif choice == ChoiceEnum.ALL_TO_A:
-            return self.year_water
-        else:
-            return 0
+        match choice:
+            case ChoiceEnum.SHARED:
+                return self.year_water/2
+            case ChoiceEnum.ALL_TO_A:
+                return self.year_water
+            case _:
+                return 0
 
     #manager acqua villaggio B
     def get_water_villageB(self, choice):
-        if choice == ChoiceEnum.SHARED:
-            return  self.year_water/2
-        elif choice == ChoiceEnum.ALL_TO_B:
-            return self.year_water
-        else:
-            return 0
+        match choice:
+            case ChoiceEnum.SHARED:
+                return  self.year_water/2
+            case ChoiceEnum.ALL_TO_B:
+                return self.year_water
+            case _:
+                return 0
