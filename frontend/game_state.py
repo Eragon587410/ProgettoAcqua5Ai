@@ -10,3 +10,5 @@ class GameState:
         self.dam_built = False
         self.request_done = False
         self.war = False
+
+from backend import GlobalManager

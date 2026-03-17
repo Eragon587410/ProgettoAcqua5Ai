@@ -1,4 +1,4 @@
-import WaterSource
+from backend import WaterSource
 
 class Village:
     VILLAGGIO_A = None
