@@ -182,6 +182,8 @@ class MapScene:
 
 
     def draw(self, screen, state):
+
+        self.title_font = pygame.font.SysFont("Arial", 16)
         
         # Disegno Schermata di Scelta Iniziale
         if self.fase_gioco == "scelta_iniziale":
@@ -194,11 +196,22 @@ class MapScene:
 
         # Disegno Mappa Normale (per tutte le altre fasi)
         screen.blit(self.map, (0, 0))
+
         self.barA.draw(screen, state.water_a)
+        barA_title_text = self.title_font.render(f"water", True, (255, 255, 255))
+        screen.blit(barA_title_text, (50, 32))
+
         self.barB.draw(screen, state.water_b)
+        barB_title_text = self.title_font.render(f"water", True, (255, 255, 255))
+        screen.blit(barB_title_text, (750, 32))
 
         self.humor_barA.draw(screen, state.humor_a)
+        humor_barA_title_text = self.title_font.render(f"felicità", True, (255, 255, 255))
+        screen.blit(humor_barA_title_text, (50, 70))
+
         self.humor_barB.draw(screen, state.humor_b)
+        humor_barB_title_text = self.title_font.render(f"felicità", True, (255, 255, 255))
+        screen.blit(humor_barB_title_text, (750, 70))
 
         year_text = self.font.render(f"Year: {state.year}", True, (255, 255, 255))
         screen.blit(year_text, (450, 20))
