@@ -1,5 +1,5 @@
-from backend import Village
-from backend import WaterSource
+from backend.Village import Village
+from backend.WaterSource import WaterSource
 
 class TimeLapse:
 

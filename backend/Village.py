@@ -1,4 +1,4 @@
-from backend import WaterSource
+from backend.WaterSource import WaterSource
 
 class Village:
     VILLAGGIO_A = None
@@ -67,8 +67,8 @@ class Village:
             self.modifica_riserva_acqua(-self.consumo_acqua)
 
     def aggiorna_anno(self, quantita_acqua):
-        self.modifica_riserva_acqua(quantita_acqua)
         self.consuma_acqua()
+        self.modifica_riserva_acqua(quantita_acqua)
         self.modifica_morale()
         self.modifica_num_persone()
 

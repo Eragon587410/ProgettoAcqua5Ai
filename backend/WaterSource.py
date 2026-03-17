@@ -6,7 +6,7 @@ class WaterSource:
     def __init__(self):
         WaterSource.INSTANCE = self
 
-        self.year_water = 4
+        self.year_water = 8
         self.poisoned = False
 
     #manager acqua villaggio A

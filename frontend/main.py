@@ -20,6 +20,7 @@ village_a = Village("A", 300, 100, 2, 100)
 village_b = Village("B", 300, 100, 2, 100)
 
 global_manager = GlobalManager(2000)
+water_source = WaterSource()
 
 while True:
 

@@ -3,6 +3,10 @@ from frontend.ui.water_bar import WaterBar
 from frontend.sprites.character import Character
 from frontend.settings import *
 
+from backend.GlobalManager import GlobalManager
+from backend import ChoiceEnum
+from backend.Village import Village
+
 from pathlib import Path
 
 current_path = Path.cwd()
@@ -39,7 +43,8 @@ class MapScene:
 
         # Gestore delle fasi: "scelta_iniziale", "simulazione", "camminata", "domanda", "collaborazione"
         self.fase_gioco = "scelta_iniziale" 
-        self.losing_village = None
+        self.village_a = None
+        self.village_b = None
 
         # RITAGLIO PERSONAGGI (x, y, larghezza, altezza). 
         # Modifica 150, 150 se i volti sono più grandi o più piccoli
@@ -62,12 +67,14 @@ class MapScene:
         if self.fase_gioco == "scelta_iniziale":
             for e in events:
                 if self.buttonA.clicked(e):
-                    self.losing_village = "A"
+                    #self.losing_village = "A"
+                    GlobalManager.INSTANCE.choice = ChoiceEnum.ALL_TO_A
                     self.char_walker = Character(f"{current_path}/frontend/assets/villageA_chars.png", 150, 400, rect=pygame.Rect(0, 0, 150, 150))
                     self.fase_gioco = "simulazione"
                     
                 if self.buttonB.clicked(e):
-                    self.losing_village = "B"
+                    #self.losing_village = "B"
+                    GlobalManager.INSTANCE.choice = ChoiceEnum.ALL_TO_B
                     self.char_walker = Character(f"{current_path}/frontend/assets/villageB_chars.png", 850, 400, rect=pygame.Rect(0, 0, 150, 150))
                     self.fase_gioco = "simulazione"
             return
@@ -75,22 +82,28 @@ class MapScene:
         # FASE 2: Simulazione anni normale
         elif self.fase_gioco == "simulazione":
             self.timer += 1
-            if self.timer > 300:
-                state.year += 5
+            if self.timer > 10:
+                GlobalManager.INSTANCE.time.year_flow(GlobalManager.INSTANCE.choice)
+                state.year = GlobalManager.INSTANCE.time.year
                 self.timer = 0
 
-                if self.losing_village == "A": state.water_a -= 10
-                if self.losing_village == "B": state.water_b -= 10
+                #if self.losing_village == "A": state.water_a -= 10
+                #if self.losing_village == "B": state.water_b -= 10
+                state.water_a = Village.VILLAGGIO_A.riserva_acqua
+                state.water_b = Village.VILLAGGIO_B.riserva_acqua
+                print(f"a: {state.water_a} - {Village.VILLAGGIO_A.riserva_acqua}\n")
+                print(f"b: {state.water_b} - {Village.VILLAGGIO_B.riserva_acqua}")
+
 
             # Evento diga
             if state.year >= 2040 and not getattr(state, 'dam_built', False):
                 state.dam_built = True
-                if self.losing_village == "B": state.water_b -= 40
-                if self.losing_village == "A": state.water_a -= 40
+                #if self.losing_village == "B": state.water_b -= 40
+                #if self.losing_village == "A": state.water_a -= 40
 
             # Controllo soglia critica dinamico (controlla il villaggio che sta perdendo acqua)
-            acqua_attuale = state.water_a if self.losing_village == "A" else state.water_b
-            if acqua_attuale < WATER_THRESHOLD:
+            #acqua_attuale = state.water_a if self.losing_village == "A" else state.water_b
+            if Village.VILLAGGIO_A.morale < 40 or Village.VILLAGGIO_B.morale < 40:
                 self.fase_gioco = "camminata"
 
         # FASE 3: Il personaggio cammina verso il centro
@@ -108,11 +121,12 @@ class MapScene:
             for e in events:
                 if self.btn_collab.clicked(e):
                     self.fase_gioco = "collaborazione"
+                    GlobalManager.INSTANCE.choice = ChoiceEnum.SHARED
                 
                 if self.btn_guerra.clicked(e):
                     # Prepariamo i personaggi per la rissa
                     # Creiamo un secondo personaggio che corre dal lato opposto
-                    if self.losing_village == "B":
+                    if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_B:
                         self.enemy_char = Character(f"{current_path}/frontend/assets/villageA_chars.png", 150, 400, rect=pygame.Rect(0, 0, 150, 150))
                     else:
                         self.enemy_char = Character(f"{current_path}/frontend/assets/villageB_chars.png", 850, 400, rect=pygame.Rect(0, 0, 150, 150))
@@ -133,25 +147,25 @@ class MapScene:
 
             # 2. Dopo un po' che corrono, passiamo al Bad Ending
             if self.timer > 150:
-                from scenes.bad_ending_scene import BadEnding
+                from frontend.scenes.bad_ending_scene import BadEnding
                 self.manager.change(BadEnding(self.manager))
 
         # FASE 5: Collaborazione (Gli anni volano, l'acqua si equalizza)
         elif self.fase_gioco == "collaborazione":
             self.timer += 1
-            if self.timer > 50: # Scorre molto più veloce!
+            if self.timer > 10: # Scorre molto più veloce!
                 self.timer = 0
                 if state.year < 2100:
-                    state.year += 1
-                    
-                    # Calcola la media e avvicina le due barre
-                    media = (state.water_a + state.water_b) / 2
-                    
-                    if state.water_a < media: state.water_a += 1
-                    elif state.water_a > media: state.water_a -= 1
-                    
-                    if state.water_b < media: state.water_b += 1
-                    elif state.water_b > media: state.water_b -= 1
+                    GlobalManager.INSTANCE.time.year_flow(GlobalManager.INSTANCE.choice)
+                    state.year = GlobalManager.INSTANCE.time.year
+                    self.timer = 0
+
+                    #if self.losing_village == "A": state.water_a -= 10
+                    #if self.losing_village == "B": state.water_b -= 10
+                    state.water_a = Village.VILLAGGIO_A.riserva_acqua
+                    state.water_b = Village.VILLAGGIO_B.riserva_acqua
+                    print(f"a: {state.water_a} - {Village.VILLAGGIO_A.riserva_acqua}\n")
+                    print(f"b: {state.water_b} - {Village.VILLAGGIO_B.riserva_acqua}")
                 else:
                     # Raggiunto il 2100, si vince!
                     self.manager.change(GoodEnding(self.manager))
