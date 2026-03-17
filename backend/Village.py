@@ -1,3 +1,5 @@
+import WaterSource
+
 class Village:
     VILLAGGIO_A = None
     VILLAGGIO_B = None
