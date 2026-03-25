@@ -39,6 +39,16 @@ class MapScene:
         self.btn_collab = Button("Collaborazione", 250, 300, 200, 50)
         self.btn_guerra = Button("Guerra", 550, 300, 200, 50)
 
+        # Caricamento del muro (da mostrare quando Villaggio B ha tutta l'acqua)
+        wall_original = pygame.image.load(f"{current_path}/frontend/assets/wall.png").convert_alpha()
+        self.wall_img = pygame.transform.scale(wall_original, (1000,600))   # adatta la dimensione al tuo fiume
+        self.wall_rect = self.wall_img.get_rect()
+
+
+        wall_original_2 = pygame.image.load(f"{current_path}/frontend/assets/wall2.png").convert_alpha()
+        self.wall_img_2 = pygame.transform.scale(wall_original_2, (1000,600))   # adatta la dimensione al tuo fiume
+        self.wall_rect_2 = self.wall_img_2.get_rect()
+
         # messenger: il cittadino estratto dalla folla per la fase camminata/domanda
         self._messenger = None
         # enemy_char rimane un Character classico per la fase conflitto
@@ -48,14 +58,14 @@ class MapScene:
 
         self.crowd_a = VillagePopulation(
             sheet_path=f"{current_path}/frontend/assets/villageA_chars.png",
-            area_rect=pygame.Rect(20, 380, 300, 180),
+            area_rect=pygame.Rect(20, 380, 260, 140),
             initial_pop=initial_pop,
             sprite_size=80,
             mask_path=f"{current_path}/frontend/assets/mask_villageA.png",
         )
         self.crowd_b = VillagePopulation(
             sheet_path=f"{current_path}/frontend/assets/villageB_chars.png",
-            area_rect=pygame.Rect(680, 380, 300, 180),
+            area_rect=pygame.Rect(680, 380, 260, 140),
             initial_pop=initial_pop,
             sprite_size=80,
             mask_path=None,
@@ -225,6 +235,24 @@ class MapScene:
             return
 
         screen.blit(self.map, (0, 0))
+        # Disegna il muro al posto della linea rossa se Villaggio B ha tutta l'acqua
+        if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_B:
+                # Posizione del muro: centrato sulla linea rossa del fiume
+                # Regola questi valori (x, y) finché non si sovrappone perfettamente alla linea rossa
+                wall_x = 0          # ← cambia questo valore
+                wall_y = 0          # ← cambia questo valore
+                
+                self.wall_rect.topleft = (wall_x, wall_y)
+                screen.blit(self.wall_img, self.wall_rect)
+
+        if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_A:
+                # Posizione del muro: centrato sulla linea rossa del fiume
+                # Regola questi valori (x, y) finché non si sovrappone perfettamente alla linea rossa
+                wall_x = 5          # ← cambia questo valore
+                wall_y = 0          # ← cambia questo valore
+                
+                self.wall_rect_2.topleft = (wall_x, wall_y)
+                screen.blit(self.wall_img_2, self.wall_rect_2)
 
         # ── PANNELLO VILLAGGIO A ──────────────────────────────────────
         self._draw_bars_panel(
