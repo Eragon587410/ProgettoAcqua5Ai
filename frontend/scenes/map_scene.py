@@ -202,6 +202,37 @@ class MapScene:
                 else:
                     self.manager.change(GoodEnding(self.manager))
 
+
+    def _draw_bars_panel(self, screen, x, y, width, height, label_water, label_humor,
+                         water_val, humor_val, bar_water, bar_humor):
+        """
+        Pannello 1: sfondo nero semi-trasparente con bordo bianco.
+        Contiene scritta + barra Water e scritta + barra Felicità.
+        """
+        # Sfondo semi-trasparente
+        panel_surf = pygame.Surface((width, height), pygame.SRCALPHA)
+        panel_surf.fill((0, 0, 0, 140))
+        screen.blit(panel_surf, (x, y))
+ 
+        # Bordo bianco
+        pygame.draw.rect(screen, (255, 255, 255), (x, y, width, height), 2, border_radius=6)
+ 
+        label_font = pygame.font.SysFont("Arial", 13)
+ 
+        # --- Riga WATER ---
+        water_label_surf = label_font.render(label_water, True, (100, 200, 255))
+        screen.blit(water_label_surf, (x + 8, y + 8))
+        bar_water.x = x + 8
+        bar_water.y = y + 26
+        bar_water.draw(screen, water_val)
+ 
+        # --- Riga FELICITA ---
+        humor_label_surf = label_font.render(label_humor, True, (255, 220, 80))
+        screen.blit(humor_label_surf, (x + 8, y + 50))
+        bar_humor.x = x + 8
+        bar_humor.y = y + 68
+        bar_humor.draw(screen, humor_val)
+
     # ------------------------------------------------------------------
     # DRAW
     # ------------------------------------------------------------------
