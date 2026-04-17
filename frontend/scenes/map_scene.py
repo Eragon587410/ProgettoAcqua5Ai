@@ -1,4 +1,5 @@
 import pygame
+import os
 from frontend.ui.water_bar import WaterBar
 from frontend.ui.humor_bar import HumorBar
 from frontend.sprites.character import Character
@@ -20,8 +21,17 @@ class MapScene:
     def __init__(self, manager, intro_choice=None):
         self.manager = manager
 
-        self.smoke_img = pygame.image.load(f"{current_path}/frontend/assets/smoke.png").convert_alpha()
-        self.smoke_img = pygame.transform.scale(self.smoke_img, (200, 200))
+        # war.png caricata come immagine statica (pygame non supporta gif animate)
+        war_frames_path = f"{current_path}/frontend/assets/war"
+        self.war_frames = []
+
+        for i in range(9):
+            frame = pygame.image.load(os.path.join(war_frames_path, f"{i+1}.png")).convert_alpha()
+            frame = pygame.transform.scale(frame, (260, 160))
+            self.war_frames.append(frame)
+        self.war_frame_index = 0
+        self.war_frame_timer = 0
+        self.war_frame_speed = 6  
 
         img_originale = pygame.image.load(f"{current_path}/frontend/assets/map.png").convert_alpha()
         self.map = pygame.transform.scale(img_originale, (1000, 600))
@@ -35,57 +45,68 @@ class MapScene:
         self.font = pygame.font.SysFont(None, 30)
 
         from frontend.ui.button import Button
-        self.buttonA = Button("Villaggio A ha tutta l'acqua", 300, 250, 200, 50)
-        self.buttonB = Button("Villaggio B ha tutta l'acqua", 550, 250, 200, 50)
-        self.btn_collab = Button("Collaborazione", 250, 300, 200, 50)
-        self.btn_guerra = Button("Guerra", 550, 300, 200, 50)
+        self.buttonA = Button("Villaggio A ha tutta l'acqua", 300, 250, 200, 50, color=(20, 90, 40), hover_color=(30, 130, 60),
+            border_color=(80, 200, 100), font_size=24,)
+        self.buttonB = Button("Villaggio B ha tutta l'acqua", 550, 250, 200, 50,color=(20, 90, 40), hover_color=(30, 130, 60),
+            border_color=(80, 200, 100), font_size=24,)
+        # Pulsanti domanda: centrati a 1000x600, affiancati con gap
+        btn_w, btn_h = 240, 58
+        gap = 40
+        total = btn_w * 2 + gap
+        bx = (1000 - total) // 2
+        by = 360
+        self.btn_collab = Button(
+            "Collaborazione", bx, by, btn_w, btn_h,
+            color=(20, 90, 40), hover_color=(30, 130, 60),
+            border_color=(80, 200, 100), font_size=24,
+        )
+        self.btn_guerra = Button(
+            "Guerra", bx + btn_w + gap, by, btn_w, btn_h,
+            color=(100, 20, 20), hover_color=(150, 30, 30),
+            border_color=(220, 70, 70), font_size=24,
+        )
 
-        # Caricamento del muro (da mostrare quando Villaggio B ha tutta l'acqua)
         wall_original = pygame.image.load(f"{current_path}/frontend/assets/wall.png").convert_alpha()
-        self.wall_img = pygame.transform.scale(wall_original, (1000,600))   # adatta la dimensione al tuo fiume
+        self.wall_img = pygame.transform.scale(wall_original, (1000, 600))
         self.wall_rect = self.wall_img.get_rect()
 
-
         wall_original_2 = pygame.image.load(f"{current_path}/frontend/assets/wall2.png").convert_alpha()
-        self.wall_img_2 = pygame.transform.scale(wall_original_2, (1000,600))   # adatta la dimensione al tuo fiume
+        self.wall_img_2 = pygame.transform.scale(wall_original_2, (1000, 600))
         self.wall_rect_2 = self.wall_img_2.get_rect()
 
-        # messenger: il cittadino estratto dalla folla per la fase camminata/domanda
         self._messenger = None
-        # enemy_char rimane un Character classico per la fase conflitto
         self.enemy_char = None
+
+        # Area pixel dei due villaggi (stessa usata per crowd)
+        self.area_a = pygame.Rect(20, 380, 260, 140)
+        self.area_b = pygame.Rect(680, 380, 260, 140)
 
         initial_pop = Village.VILLAGGIO_A.num_persone
 
         self.crowd_a = VillagePopulation(
             sheet_path=f"{current_path}/frontend/assets/villageA_chars.png",
-            area_rect=pygame.Rect(20, 380, 260, 140),
+            area_rect=self.area_a,
             initial_pop=initial_pop,
             sprite_size=80,
             mask_path=f"{current_path}/frontend/assets/mask_villageA.png",
         )
         self.crowd_b = VillagePopulation(
             sheet_path=f"{current_path}/frontend/assets/villageB_chars.png",
-            area_rect=pygame.Rect(680, 380, 260, 140),
+            area_rect=self.area_b,
             initial_pop=initial_pop,
             sprite_size=80,
             mask_path=None,
         )
 
-        # --- Gestione scelta dall'IntroScene ---
         if intro_choice == 0:
             GlobalManager.INSTANCE.choice = ChoiceEnum.SHARED
-            # Il messaggero verrà estratto da crowd_a quando serve
             self.fase_gioco = "collaborazione"
-
         elif intro_choice == 1:
             GlobalManager.INSTANCE.choice = ChoiceEnum.ALL_TO_A
             self.fase_gioco = "simulazione"
-
         elif intro_choice == 2:
             GlobalManager.INSTANCE.choice = ChoiceEnum.ALL_TO_B
             self.fase_gioco = "simulazione"
-
         else:
             self.fase_gioco = "scelta_iniziale"
 
@@ -125,7 +146,6 @@ class MapScene:
                 state.dam_built = True
 
             if Village.VILLAGGIO_A.morale < 40 or Village.VILLAGGIO_B.morale < 40:
-                # Determina quale villaggio soffre e fa uscire il suo messaggero
                 if Village.VILLAGGIO_B.morale < 40 or GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_A:
                     self._messenger = self.crowd_b.extract_messenger(target_x=320, target_y=430)
                 else:
@@ -133,14 +153,12 @@ class MapScene:
                 self.fase_gioco = "camminata"
 
         elif self.fase_gioco == "camminata":
-            # Il messaggero si aggiorna dentro crowd.update() già chiamato sopra
             if self._messenger and self._messenger.arrived:
                 self.fase_gioco = "domanda"
 
         elif self.fase_gioco == "domanda":
             for e in events:
                 if self.btn_collab.clicked(e):
-                    # Rimanda il messaggero a casa
                     if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_A:
                         self.crowd_b.release_messenger()
                     else:
@@ -149,27 +167,21 @@ class MapScene:
                     GlobalManager.INSTANCE.set_choice(ChoiceEnum.SHARED)
 
                 if self.btn_guerra.clicked(e):
-                    # Per la guerra usiamo ancora un Character classico come "soldato nemico"
-                    if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_B:
-                        self.enemy_char = Character(
-                            f"{current_path}/frontend/assets/villageA_chars.png",
-                            150, 430, rect=pygame.Rect(0, 0, 80, 80))
+                    if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_A:
+                        self.crowd_b.release_messenger()
                     else:
-                        self.enemy_char = Character(
-                            f"{current_path}/frontend/assets/villageB_chars.png",
-                            850, 430, rect=pygame.Rect(0, 0, 80, 80))
+                        self.crowd_a.release_messenger()
                     self.fase_gioco = "conflitto"
                     self.timer = 0
 
         elif self.fase_gioco == "conflitto":
             self.timer += 1
-            # Muovi il messaggero verso il centro
-            if self._messenger:
-                pass  # già aggiornato da crowd.update()
-            # Muovi il nemico verso il centro
-            if self.enemy_char:
-                if self.enemy_char.x < 450: self.enemy_char.x += 5
-                elif self.enemy_char.x > 550: self.enemy_char.x -= 5
+
+            # Animazione frame: gira ogni frame, indipendente dal timer di gioco
+            self.war_frame_timer += 1
+            if self.war_frame_timer >= self.war_frame_speed:
+                self.war_frame_timer = 0
+                self.war_frame_index = (self.war_frame_index + 1) % len(self.war_frames)
 
             if self.timer > 150:
                 GlobalManager.INSTANCE.war()
@@ -185,6 +197,7 @@ class MapScene:
                     WaterSource.INSTANCE.poisoned = True
                     self.fase_gioco = "avvelenamento"
                     
+
 
         elif self.fase_gioco == "collaborazione":
             self.timer += 1
@@ -238,6 +251,26 @@ class MapScene:
         bar_humor.y = y + 68
         bar_humor.draw(screen, humor_val)
 
+    def _draw_war_smoke(self, screen):
+        """
+        Disegna la gif war sopra il villaggio perdente (stesso lato del muro).
+        ALL_TO_A → muro su A → fumo su A (villaggio A perde acqua).
+        ALL_TO_B → muro su B → fumo su B.
+        Copre i cittadini con un rettangolo nero prima, poi disegna la gif sopra.
+        """
+        choice = GlobalManager.INSTANCE.choice
+        if choice == ChoiceEnum.ALL_TO_A:
+            area = self.area_b   # A ha tutta l'acqua → B è il perdente
+        elif choice == ChoiceEnum.ALL_TO_B:
+            area = self.area_a   # B ha tutta l'acqua → A è il perdente
+        else:
+            return  # collaborazione: niente fumo
+
+        # Frame centrato nell'area (niente sfondo nero: i PNG hanno già trasparenza)
+        current_frame = self.war_frames[self.war_frame_index]
+        gif_x = area.x + (area.width - current_frame.get_width()) // 2
+        gif_y = area.y + (area.height - current_frame.get_height()) // 2
+        screen.blit(current_frame, (gif_x, gif_y))
     # ------------------------------------------------------------------
     # DRAW
     # ------------------------------------------------------------------
@@ -253,34 +286,25 @@ class MapScene:
             self.buttonB.draw(screen)
             return
 
+        # 1. Mappa di sfondo
         screen.blit(self.map, (0, 0))
-        # Disegna il muro al posto della linea rossa se Villaggio B ha tutta l'acqua
+
+        # 2. Muri
         if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_B:
-                # Posizione del muro: centrato sulla linea rossa del fiume
-                # Regola questi valori (x, y) finché non si sovrappone perfettamente alla linea rossa
-                wall_x = 0          # ← cambia questo valore
-                wall_y = 0          # ← cambia questo valore
-                
-                self.wall_rect.topleft = (wall_x, wall_y)
-                screen.blit(self.wall_img, self.wall_rect)
+            self.wall_rect.topleft = (0, 0)
+            screen.blit(self.wall_img, self.wall_rect)
 
         if GlobalManager.INSTANCE.choice == ChoiceEnum.ALL_TO_A:
-                # Posizione del muro: centrato sulla linea rossa del fiume
-                # Regola questi valori (x, y) finché non si sovrappone perfettamente alla linea rossa
-                wall_x = 5          # ← cambia questo valore
-                wall_y = 0          # ← cambia questo valore
-                
-                self.wall_rect_2.topleft = (wall_x, wall_y)
-                screen.blit(self.wall_img_2, self.wall_rect_2)
+            self.wall_rect_2.topleft = (5, 0)
+            screen.blit(self.wall_img_2, self.wall_rect_2)
 
-        # ── PANNELLO VILLAGGIO A ──────────────────────────────────────
+        # 3. Pannelli barre
         self._draw_bars_panel(
             screen, x=25, y=10, width=220, height=130,
             label_water="Water", label_humor="Felicità",
             water_val=state.water_a, humor_val=state.humor_a,
             bar_water=self.barA, bar_humor=self.humor_barA,
         )
-        # ── PANNELLO VILLAGGIO B ──────────────────────────────────────
         self._draw_bars_panel(
             screen, x=725, y=10, width=220, height=130,
             label_water="Water", label_humor="Felicità",
@@ -296,20 +320,45 @@ class MapScene:
         screen.blit(self.font.render(f"Popolazione: {numero_persone_a}", True, (255, 255, 255)), (50, 110))
         screen.blit(self.font.render(f"Popolazione: {numero_persone_b}", True, (255, 255, 255)), (750, 110))
 
-        # Le folle (il messaggero è già dentro, viene disegnato con la folla)
-        self.crowd_a.draw(screen)
-        self.crowd_b.draw(screen)
+        # 4. Folle: in conflitto, nascondi il villaggio sotto la gif guerra
+        choice = GlobalManager.INSTANCE.choice
+        hide_a = (self.fase_gioco == "conflitto" and choice == ChoiceEnum.ALL_TO_B)
+        hide_b = (self.fase_gioco == "conflitto" and choice == ChoiceEnum.ALL_TO_A)
+        if not hide_a:
+            self.crowd_a.draw(screen)
+        if not hide_b:
+            self.crowd_b.draw(screen)
 
+        # 5. In fase conflitto: copri i cittadini e mostra la gif guerra
+        if self.fase_gioco == "conflitto":
+            self._draw_war_smoke(screen)
+            # Pannello semitrasparente + scritta SCONTRO! centrata
+            scontro_surf = pygame.Surface((200, 50), pygame.SRCALPHA)
+            scontro_surf.fill((0, 0, 0, 160))
+            screen.blit(scontro_surf, (400, 325))
+            pygame.draw.rect(screen, (255, 80, 80), (400, 325, 200, 50), 2, border_radius=6)
+            scontro_txt = self.font.render("SCONTRO!", True, (255, 80, 80))
+            screen.blit(scontro_txt, (400 + (200 - scontro_txt.get_width()) // 2, 338))
+
+        # 6. Domanda
         if self.fase_gioco == "domanda":
-            q_text = self.font.render("L'acqua sta finendo! Cosa volete fare?", True, (255, 255, 255))
-            screen.blit(q_text, (320, 200))
+            # Pannello semitrasparente centrato
+            panel_w, panel_h = 560, 200
+            panel_x = (1000 - panel_w) // 2
+            panel_y = 270
+            panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+            panel.fill((0, 0, 0, 170))
+            screen.blit(panel, (panel_x, panel_y))
+            pygame.draw.rect(screen, (180, 180, 200),
+                             (panel_x, panel_y, panel_w, panel_h), 2, border_radius=10)
+            # Titolo
+            q_font = pygame.font.SysFont("Arial", 22, bold=True)
+            q_text = q_font.render("L'acqua sta finendo! Cosa volete fare?",
+                                   True, (255, 255, 255))
+            screen.blit(q_text, (1000 // 2 - q_text.get_width() // 2, panel_y + 22))
+            # Linea divisoria
+            pygame.draw.line(screen, (120, 120, 150),
+                             (panel_x + 30, panel_y + 58),
+                             (panel_x + panel_w - 30, panel_y + 58), 1)
             self.btn_collab.draw(screen)
             self.btn_guerra.draw(screen)
-
-        if self.fase_gioco == "conflitto" and self.enemy_char:
-            self.enemy_char.draw(screen)
-            messenger_x = self._messenger.x if self._messenger else 500
-            if abs(messenger_x - self.enemy_char.x) < 100:
-                import random
-                screen.blit(self.smoke_img, (400 + random.randint(-5, 5), 350 + random.randint(-5, 5)))
-                screen.blit(self.font.render("SCONTRO!", True, (255, 0, 0)), (450, 300))

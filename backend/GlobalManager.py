@@ -59,4 +59,6 @@ class GlobalManager:
             Village.VILLAGGIO_B.morale += 10
             Village.VILLAGGIO_A.morale -= 10
 
+        return winner
+
         

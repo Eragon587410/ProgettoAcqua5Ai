@@ -7,7 +7,7 @@ class WarScene:
 
         self.manager = manager
 
-        self.smoke = pygame.image.load("assets/smoke.png")
+        self.smoke = pygame.image.load("assets/war.gif")
 
         self.timer = 0
 
