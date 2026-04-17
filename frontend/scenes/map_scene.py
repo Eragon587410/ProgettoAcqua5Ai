@@ -8,6 +8,7 @@ from frontend.settings import *
 from backend.GlobalManager import GlobalManager
 from backend import ChoiceEnum
 from backend.Village import Village
+from backend.WaterSource import WaterSource
 
 from pathlib import Path
 current_path = Path.cwd()
@@ -181,8 +182,9 @@ class MapScene:
                 state.humor_b = Village.VILLAGGIO_B.morale
 
                 if Village.VILLAGGIO_A.estinto or Village.VILLAGGIO_B.estinto:
-                    from frontend.scenes.bad_ending_scene import BadEnding
-                    self.manager.change(BadEnding(self.manager))
+                    WaterSource.INSTANCE.poisoned = True
+                    self.fase_gioco = "avvelenamento"
+                    
 
         elif self.fase_gioco == "collaborazione":
             self.timer += 1
@@ -197,6 +199,23 @@ class MapScene:
                     state.humor_b = Village.VILLAGGIO_B.morale
                 else:
                     self.manager.change(GoodEnding(self.manager))
+        elif self.fase_gioco == "avvelenamento":
+            self.timer += 1
+            if self.timer > 10:
+                self.timer = 0
+                GlobalManager.INSTANCE.time.year_flow(GlobalManager.INSTANCE.choice)
+                state.year = GlobalManager.INSTANCE.time.year
+                state.water_a = Village.VILLAGGIO_A.riserva_acqua
+                state.water_b = Village.VILLAGGIO_B.riserva_acqua
+                state.humor_a = Village.VILLAGGIO_A.morale
+                state.humor_b = Village.VILLAGGIO_B.morale
+
+        
+
+
+        if Village.VILLAGGIO_A.estinto and Village.VILLAGGIO_B.estinto:
+            from frontend.scenes.bad_ending_scene import BadEnding
+            self.manager.change(BadEnding(self.manager))
 
     # ------------------------------------------------------------------
     # HELPERS

@@ -57,6 +57,8 @@ class Village:
             self.morale = min(100, self.morale + self.RECUPERO_MORALE)
 
     def modifica_num_persone(self):
+        if WaterSource.INSTANCE.poisoned and not self.estinto:
+            self.num_persone = max(0, self.num_persone-5)
         if self.in_crisi_idrica and not self.estinto:
             morti = max(1, int(self.num_persone * (self.DECREMENTO_PERSONE_PCT / 100)))
             self.num_persone -= morti
@@ -67,10 +69,11 @@ class Village:
             self.modifica_riserva_acqua(-self.consumo_acqua)
 
     def aggiorna_anno(self, quantita_acqua):
-        self.consuma_acqua()
-        self.modifica_riserva_acqua(quantita_acqua)
-        self.modifica_morale()
-        self.modifica_num_persone()
+        if not self.estinto:
+            self.consuma_acqua()
+            self.modifica_riserva_acqua(quantita_acqua)
+            self.modifica_morale()
+            self.modifica_num_persone()
 
     # region Utiliy
 
